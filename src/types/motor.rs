@@ -3,8 +3,6 @@ use std::net::SocketAddr;
 use tokio::net::UdpSocket;
 use std::collections::HashMap;
 
-pub use super::NeuronId;
-
 use crate::error::{ BuildError, CommunicationError };
 
 
@@ -26,7 +24,7 @@ pub struct Motor<B: Fn(A) -> R, A, R> {
     /// every time the NeuronId is received.
     /// These should correspond to those in `Output.senders`.
     /// The sender IDs can be retrieved with the `Output::sender_ids` method. 
-    pub nerves: HashMap<NeuronId, B>,
+    pub nerves: HashMap<u16, B>,
     phantom_data: std::marker::PhantomData<(A, R)>
 } 
 
@@ -53,7 +51,7 @@ impl<B: Fn(A) -> R, A, R> Motor<B, A, R> {
 
     /// Maps a neurotransmission signal to a process to be executed.
     /// NOTE: Overwrites existing NeuronId key without checking.
-    pub fn add_nerve(&mut self, impulse: &NeuronId, behavior: B) {
+    pub fn add_nerve(&mut self, impulse: u16, behavior: B) {
 
         self.nerves.insert(impulse.clone(), behavior);
     }
@@ -67,7 +65,7 @@ impl<B: Fn(A) -> R, A, R> Motor<B, A, R> {
 
         let n_bytes = self.socket.recv(buffer).await?;
         let buff = &buffer[..n_bytes];
-        let impulse: NeuronId = bincode::deserialize_from(buff)?;
+        let impulse: u16 = bincode::deserialize_from(buff)?;
 
         if let Some(behavior) = self.nerves.get(&impulse) { 
             Ok(behavior(args)) 

@@ -13,11 +13,11 @@ pub enum CommunicationError {
     #[error("Failed to communicate with socket: {0}")]
     SocketFailed(#[from] std::io::Error),
 
-    #[error("Couldn't serialize/deserialize message: {0}")]
+    #[error("Failed to serialize/deserialize message: {0}")]
     SerdeFailed(#[from] Box<bincode::ErrorKind>),
 
-    #[error("Unrecognized NeuronId: {0}")]
-    UnrecognizedImpulse(cajal::neuron::NeuronId),
+    #[error("Unrecognized impulse via fiber ID: {0}")]
+    UnrecognizedImpulse(u16),
 
     #[error("Unrecognized trigger from Sensor '{0}'")]
     UnrecognizedTrigger(String)

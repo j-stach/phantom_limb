@@ -4,8 +4,6 @@ use tokio::net::UdpSocket;
 use std::collections::HashMap;
 use std::hash::Hash;
 
-pub use super::NeuronId;
-
 use crate::error::{ BuildError, CommunicationError };
 
 
@@ -25,7 +23,7 @@ pub struct Sensor<Q: Hash + Eq> {
 
     /// These should correspond to the NeuronIds in `Input.fibers`.
     /// The fiber IDs can be retrieved with the `Input::fiber_ids` method. 
-    pub spectrum: HashMap<Q, NeuronId>,
+    pub spectrum: HashMap<Q, u16>,
 } 
 
 impl<Q: Hash + Eq> Sensor<Q> {
@@ -50,9 +48,9 @@ impl<Q: Hash + Eq> Sensor<Q> {
 
     /// Maps a sensory bit to a new NeuronId.
     /// NOTE: Overwrites existing quantum key without checking.
-    pub fn add_receptor(&mut self, quantum: Q, nid: NeuronId) {
+    pub fn add_receptor(&mut self, quantum: Q, fid: u16) {
 
-        self.spectrum.insert(quantum, nid);
+        self.spectrum.insert(quantum, fid);
     }
 
     /// Connect to a remote socket. 
