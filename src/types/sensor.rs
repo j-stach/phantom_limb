@@ -55,13 +55,14 @@ impl<Q: Hash + Eq> Sensor<Q> {
 
     /// Connect to a remote socket. 
     /// Remember to ensure that the corresponding Input
-    /// can handle all NeuronIds that will be sent by this sensor.
+    /// can handle all fiber IDs that will be sent by this sensor.
     pub async fn connect(
-        &self, 
+        &mut self, 
         remote: &SocketAddr
     ) -> Result<(), BuildError> {
 
         self.socket.connect(remote).await?;
+        self.address = remote.to_owned();
         Ok(())
     }
 
@@ -83,3 +84,20 @@ impl<Q: Hash + Eq> Sensor<Q> {
 
 }
 
+
+use cajal_cx::tract::{ Tract, sender::TractSender };
+
+impl<Q: Hash + Eq> Tract for Sensor<Q> {
+    fn tract_name(&self) -> &str { &self.tract_name }
+    fn num_fibers(&self) -> usize { self.spectrum.len() }
+    fn tract_address(&self) -> SocketAddr { self.address.clone() }
+}
+
+impl<Q: Hash + Eq> TractSender for Sensor<Q> {
+
+    async fn set_target_address(&mut self, target_address: SocketAddr) -> Result<(), std::io::Error> {
+        self.socket.connect(target_address).await?;
+        self.address = target_address.clone();
+        Ok(())
+    }
+}

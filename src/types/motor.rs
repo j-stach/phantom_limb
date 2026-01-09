@@ -20,11 +20,11 @@ pub struct Motor<B: Fn(A) -> R, A, R> {
     pub address: SocketAddr,
     pub(crate) socket: UdpSocket,
 
-    /// Maps each NeuronId to a "behavior" function to execute 
-    /// every time the NeuronId is received.
+    /// Maps each fiber ID (`u16`) to a "behavior" function to execute 
+    /// every time the ID is received.
     /// These should correspond to those in `Output.senders`.
     /// The sender IDs can be retrieved with the `Output::sender_ids` method. 
-    pub nerves: HashMap<u16, B>,
+    pub fibers: HashMap<u16, B>,
     phantom_data: std::marker::PhantomData<(A, R)>
 } 
 
@@ -41,7 +41,7 @@ impl<B: Fn(A) -> R, A, R> Motor<B, A, R> {
             tract_name: tract_name.to_owned(),
             address,
             socket: UdpSocket::bind(address).await?,
-            nerves: HashMap::new(),
+            fibers: HashMap::new(),
             phantom_data: std::marker::PhantomData
         };
 
@@ -50,10 +50,10 @@ impl<B: Fn(A) -> R, A, R> Motor<B, A, R> {
     }
 
     /// Maps a neurotransmission signal to a process to be executed.
-    /// NOTE: Overwrites existing NeuronId key without checking.
-    pub fn add_nerve(&mut self, impulse: u16, behavior: B) {
+    /// NOTE: Overwrites existing impulse (fiber ID) key without checking.
+    pub fn add_fiber(&mut self, impulse: u16, behavior: B) {
 
-        self.nerves.insert(impulse.clone(), behavior);
+        self.fibers.insert(impulse.clone(), behavior);
     }
 
     /// Receives NeuronId messages and executes the corresponding function.
@@ -67,7 +67,7 @@ impl<B: Fn(A) -> R, A, R> Motor<B, A, R> {
         let buff = &buffer[..n_bytes];
         let impulse: u16 = bincode::deserialize_from(buff)?;
 
-        if let Some(behavior) = self.nerves.get(&impulse) { 
+        if let Some(behavior) = self.fibers.get(&impulse) { 
             Ok(behavior(args)) 
         } else { 
             Err(CommunicationError::UnrecognizedImpulse(impulse))
@@ -75,4 +75,15 @@ impl<B: Fn(A) -> R, A, R> Motor<B, A, R> {
     }
 
 }
+
+
+use cajal_cx::tract::{ Tract, receiver::TractReceiver };
+
+impl<B: Fn(A) -> R, A, R> Tract for Motor<B, A, R> {
+    fn tract_name(&self) -> &str { &self.tract_name }
+    fn num_fibers(&self) -> usize { self.fibers.len() }
+    fn tract_address(&self) -> SocketAddr { self.address.clone() }
+}
+
+impl<B: Fn(A) -> R, A, R> TractReceiver for Motor<B, A, R> {}
 
